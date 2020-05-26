@@ -13,11 +13,11 @@ namespace OAuth
         POST,
     }
 
-    public class HttpResult
+    public class OAuthRequestResult
     {
         public string Text;
         public bool IsSuccess;
-        public HttpStatusCode StatusCode;
+        public long StatusCode;
     }
 
     public class OAuthToken
@@ -52,7 +52,7 @@ namespace OAuth
     {
         string Url { get; }
         OAuthRequestMethod Method { get; }
-        void Request(Dictionary<string, string> parameters, Action<HttpResult> onSuccess, Action<HttpResult> onError);
+        void Request(Dictionary<string, string> parameters, Action<OAuthRequestResult> onSuccess, Action<OAuthRequestResult> onError);
     }
 
     public class OAuthRequest
@@ -98,7 +98,7 @@ namespace OAuth
             m_request = request;
         }
 
-        public void SendWebRequest(Action<HttpResult> onSuccess, Action<HttpResult> onError)
+        public void SendWebRequest(Action<OAuthRequestResult> onSuccess, Action<OAuthRequestResult> onError)
         {
             m_request.Request(m_parameters, onSuccess, onError);
         }

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Net.Http;
+using System.Net;
 
 
 namespace OAuth
@@ -24,7 +25,7 @@ namespace OAuth
             m_method = method;
         }
 
-        public void Request(Dictionary<string, string> parameters, Action<HttpResult> onSuccess, Action<HttpResult> onError)
+        public void Request(Dictionary<string, string> parameters, Action<OAuthRequestResult> onSuccess, Action<OAuthRequestResult> onError)
         {
             var uri = new Uri(Url);
             switch (m_method)
@@ -50,9 +51,9 @@ namespace OAuth
             });
         }
 
-        private static async Task Run(string url, OAuthRequestMethod method, Dictionary<string, string> parameters, Action<HttpResult> onSuccess, Action<HttpResult> onError, SynchronizationContext context)
+        private static async Task Run(string url, OAuthRequestMethod method, Dictionary<string, string> parameters, Action<OAuthRequestResult> onSuccess, Action<OAuthRequestResult> onError, SynchronizationContext context)
         {
-            var result = new HttpResult();
+            var result = new OAuthRequestResult();
             switch (method)
             {
                 case OAuthRequestMethod.GET:
@@ -61,7 +62,7 @@ namespace OAuth
                         var text = await response.Content.ReadAsStringAsync();
                         result.Text = text;
                         result.IsSuccess = response.IsSuccessStatusCode;
-                        result.StatusCode = response.StatusCode;
+                        result.StatusCode = (long)response.StatusCode;
                     }
                     break;
                 case OAuthRequestMethod.POST:
@@ -73,7 +74,7 @@ namespace OAuth
                         var text = await response.Content.ReadAsStringAsync();
                         result.Text = text;
                         result.IsSuccess = response.IsSuccessStatusCode;
-                        result.StatusCode = response.StatusCode;
+                        result.StatusCode = (long)response.StatusCode;
                     }
                     break;
             }
