@@ -10,6 +10,8 @@ public class TwitterTestController : MonoBehaviour
     private InputField m_input;
     [SerializeField]
     private InputField m_tweetContent;
+    [SerializeField]
+    private Camera m_mediaCamera;
 
     private OAuthClient m_oauthClient = new OAuthClient("HFJomVRXS1to55cg6SCSgpc3d", "CFzneG6qbkPmuaGfR75CL7BhzYsYZ1ieS1VIiKYfeU10FxYcq0");
     private OAuthToken m_token = null;
@@ -65,6 +67,33 @@ public class TwitterTestController : MonoBehaviour
         var body = new Dictionary<string, string>();
         m_token = new OAuthToken("1154717183953346562-SujLIxSWkAwMVBZswz7rzPPRt5iV5E", "MwvUMicjOxwi9EQnjuvtmksQs8Gab3HRyVVqVALSxeKQX");
         body.Add("status", tweet);
+        var req = new OAuthRequest(new OAuthRequestUnity(url, OAuthRequestMethod.POST), m_oauthClient, m_token, new OAuthSignature_HMACSHA1(), body);
+        req.SendWebRequest((result) =>
+        {
+            Debug.LogError(result.Text);
+        }, (result) =>
+        {
+            Debug.LogError(result.Text);
+        });
+    }
+
+    // {"media_id":1265180818491633665,"media_id_string":"1265180818491633665","size":9481,"expires_after_secs":86400,"image":{"image_type":"image\/jpeg","w":256,"h":256}}
+    public void UploadMedia()
+    {
+        var url = "https://upload.twitter.com/1.1/media/upload.json";
+        var body = new Dictionary<string, string>();
+        m_token = new OAuthToken("1154717183953346562-SujLIxSWkAwMVBZswz7rzPPRt5iV5E", "MwvUMicjOxwi9EQnjuvtmksQs8Gab3HRyVVqVALSxeKQX");
+
+        var renderTexture = m_mediaCamera.targetTexture;
+        var tex = new Texture2D(renderTexture.width, renderTexture.height);
+
+        RenderTexture.active = renderTexture;
+        tex.ReadPixels(new Rect(0, 0, tex.width, tex.height), 0, 0);
+        tex.Apply();
+        var jpg = tex.EncodeToJPG();
+        var jpgData = System.Convert.ToBase64String(jpg);
+
+        body.Add("media_data", jpgData);
         var req = new OAuthRequest(new OAuthRequestUnity(url, OAuthRequestMethod.POST), m_oauthClient, m_token, new OAuthSignature_HMACSHA1(), body);
         req.SendWebRequest((result) =>
         {
