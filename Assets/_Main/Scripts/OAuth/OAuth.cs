@@ -3,7 +3,7 @@ using System.Linq;
 using System.Web;
 using System.Net;
 using System.Collections.Generic;
-
+using UnityEngine;
 
 namespace OAuth
 {
@@ -48,20 +48,49 @@ namespace OAuth
         public abstract string GetSignature(OAuthRequestMethod method, string url, OAuthClient client, OAuthToken token, Dictionary<string, string> parameters);
     }
 
-    public interface IOAuthRequest
+    public abstract class OAuthRequestObject
     {
-        string Url { get; }
-        OAuthRequestMethod Method { get; }
-        void Request(Dictionary<string, string> parameters, Action<OAuthRequestResult> onSuccess, Action<OAuthRequestResult> onError);
+        public string Url { get; private set; }
+        public OAuthRequestMethod Method { get; private set; }
+        public abstract void Request(Dictionary<string, string> parameters, Action<OAuthRequestResult> onSuccess, Action<OAuthRequestResult> onError);
+
+        public OAuthRequestObject(string url, OAuthRequestMethod method)
+        {
+            Url = url;
+            Method = method;
+        }
+
+        public string ParseURL(Dictionary<string, string> parameters)
+        {
+            var uri = new Uri(Url);
+            var parsedUrl = "";
+            switch (Method)
+            {
+                case OAuthRequestMethod.GET:
+                    parsedUrl = $"{uri.Scheme}://{uri.Authority}{uri.LocalPath}";
+                    var queries = parameters.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}");
+                    var query = string.Join("&", queries);
+                    if (queries.Count() > 0)
+                    {
+                        parsedUrl = $"{parsedUrl}?{query}";
+                    }
+                    break;
+                case OAuthRequestMethod.POST:
+                    parsedUrl = $"{uri.Scheme}://{uri.Authority}{uri.LocalPath}";
+                    break;
+            }
+
+            return parsedUrl;
+        }
     }
 
     public class OAuthRequest
     {
         private const string Version = "1.0";
         private Dictionary<string, string> m_parameters = new Dictionary<string, string>();
-        private IOAuthRequest m_request = null;
+        private OAuthRequestObject m_request = null;
 
-        public OAuthRequest(IOAuthRequest request, OAuthClient client, OAuthToken token, OAuthSignature signature, Dictionary<string, string> body = null)
+        public OAuthRequest(OAuthRequestObject request, OAuthClient client, OAuthToken token, OAuthSignature signature, Dictionary<string, string> body = null)
         {
             var uri = new Uri(request.Url);
             var parameters = new Dictionary<string, string>();
@@ -73,7 +102,7 @@ namespace OAuth
 
             var urlWithoutQuery = $"{uri.Scheme}://{uri.Authority}{uri.LocalPath}";
             var timestamp = DateTime.Now.ToUniversalTime() - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-            var nonce = new Random().Next(100000000);
+            var nonce = new System.Random().Next(100000000);
             var queryParams = HttpUtility.ParseQueryString(uri.Query);
             foreach (var key in queryParams.AllKeys)
             {

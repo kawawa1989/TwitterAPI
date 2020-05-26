@@ -6,19 +6,15 @@ using UnityEngine;
 
 namespace OAuth
 {
-    public class OAuthRequestUnity : IOAuthRequest
+    public class OAuthRequestUnity : OAuthRequestObject
     {
         private UnityWebRequest m_request = null;
-        public string Url { get; private set; }
-        public OAuthRequestMethod Method { get; private set; }
 
-        public OAuthRequestUnity(string url, OAuthRequestMethod method)
+        public OAuthRequestUnity(string url, OAuthRequestMethod method) : base(url, method)
         {
-            Url = url;
-            Method = method;
         }
 
-        public void Request(Dictionary<string, string> parameters, Action<OAuthRequestResult> onSuccess, Action<OAuthRequestResult> onError)
+        public override void Request(Dictionary<string, string> parameters, Action<OAuthRequestResult> onSuccess, Action<OAuthRequestResult> onError)
         {
             if (m_request != null && !m_request.isDone)
             {
@@ -26,29 +22,19 @@ namespace OAuth
                 return;
             }
 
-            var uri = new Uri(Url);
-            var url = "";
-           
+            var parsedUrl = ParseURL(parameters);
             switch (Method)
             {
                 case OAuthRequestMethod.GET:
-                    url = $"{uri.Scheme}://{uri.Authority}{uri.LocalPath}";
-                    var queries = parameters.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}");
-                    var query = string.Join("&", queries);
-                    if (queries.Count() > 0)
-                    {
-                        url = $"{url}?{query}";
-                    }
-                    m_request = UnityWebRequest.Get(url);
+                    m_request = UnityWebRequest.Get(parsedUrl);
                     break;
                 case OAuthRequestMethod.POST:
                     var form = new WWWForm();
-                    url = $"{uri.Scheme}://{uri.Authority}{uri.LocalPath}";
-                    foreach(var param in parameters)
+                    foreach (var param in parameters)
                     {
                         form.AddField(param.Key, param.Value);
                     }
-                    m_request = UnityWebRequest.Post(url, form);
+                    m_request = UnityWebRequest.Post(parsedUrl, form);
                     break;
             }
 
@@ -59,6 +45,7 @@ namespace OAuth
                 result.Text = m_request.downloadHandler.text;
                 result.IsSuccess = !m_request.isHttpError && !m_request.isNetworkError;
                 result.StatusCode = m_request.responseCode;
+                m_request = null;
 
                 if (!result.IsSuccess)
                 {

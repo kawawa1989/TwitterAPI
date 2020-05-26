@@ -5,49 +5,43 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Net.Http;
-using System.Net;
+using UnityEngine;
 
 
 namespace OAuth
 {
-    public class OAuthRequestHttpClient : IOAuthRequest
+    public class OAuthRequestHttpClient : OAuthRequestObject
     {
         private static HttpClient httpClient = new HttpClient();
-        private string m_url = "";
-        private OAuthRequestMethod m_method = OAuthRequestMethod.GET;
+        private bool m_isConnecting = false;
 
-        public string Url => m_url;
-        public OAuthRequestMethod Method => m_method;
-
-        public OAuthRequestHttpClient(string url, OAuthRequestMethod method)
+        public OAuthRequestHttpClient(string url, OAuthRequestMethod method) : base(url, method)
         {
-            m_url = url;
-            m_method = method;
         }
 
-        public void Request(Dictionary<string, string> parameters, Action<OAuthRequestResult> onSuccess, Action<OAuthRequestResult> onError)
+        public override void Request(Dictionary<string, string> parameters, Action<OAuthRequestResult> onSuccess, Action<OAuthRequestResult> onError)
         {
-            var uri = new Uri(Url);
-            switch (m_method)
+            if (m_isConnecting)
             {
-                case OAuthRequestMethod.GET:
-                    m_url = $"{uri.Scheme}://{uri.Authority}{uri.LocalPath}";
-                    var queries = parameters.Select(kvp => $"{kvp.Key}={Uri.EscapeDataString(kvp.Value)}");
-                    var query = string.Join("&", queries);
-                    if (queries.Count() > 0)
-                    {
-                        m_url = $"{m_url}?{query}";
-                    }
-                    break;
-                case OAuthRequestMethod.POST:
-                    m_url = $"{uri.Scheme}://{uri.Authority}{uri.LocalPath}";
-                    break;
+                Debug.LogError("未完了のリクエストがあります！");
+                return;
             }
+            m_isConnecting = true;
+            Action<OAuthRequestResult> onSuccessCallback = (result) =>
+            {
+                m_isConnecting = false;
+                onSuccess(result);
+            };
+            Action<OAuthRequestResult> onErrorCallback = (result) =>
+            {
+                m_isConnecting = false;
+                onError(result);
+            };
 
             var context = SynchronizationContext.Current;
             Task.Run(() =>
             {
-                return Run(m_url, m_method, parameters, onSuccess, onError, context);
+                return Run(ParseURL(parameters), Method, parameters, onSuccessCallback, onErrorCallback, context);
             });
         }
 
